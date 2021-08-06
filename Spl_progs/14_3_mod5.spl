@@ -1,0 +1,49 @@
+breakpoint;
+alias current_pid R0;
+alias current_processtable R1;
+current_pid=[SYSTEM_STATUS_TABLE+1]; 
+multipush(BP);
+current_processtable=PROCESS_TABLE+current_pid*16;
+[current_processtable+12]=SP%512;
+[current_processtable+14]=PTBR;
+[current_processtable+15]=PTLR;
+
+alias counter R2;
+alias new_pid R3;
+alias new_processtable R4;
+alias loop_count R5;
+
+counter=current_pid+1;
+new_pid=0;
+loop_count=0;
+while(loop_count<17) do
+	new_processtable=PROCESS_TABLE+counter*16;
+	if([new_processtable+4]==CREATED||[new_processtable+4]==READY)then
+		new_pid=counter;
+		break;
+	endif;
+	counter=counter+1;
+	if(counter==16)then
+		counter=0;
+	endif;
+	loop_count=loop_count+1;
+endwhile;
+
+new_processtable=PROCESS_TABLE+new_pid*16;
+SP=[new_processtable+11]*512+[new_processtable+12];
+PTBR=[new_processtable+14];
+PTLR=[new_processtable+15];
+[SYSTEM_STATUS_TABLE+1]=new_pid;
+
+if([new_processtable+4]==CREATED)then
+	SP=[new_processtable+13];
+	[new_processtable+4]=RUNNING;
+	[new_processtable+9]=0;
+	ireturn;
+endif;
+[new_processtable+4]=RUNNING;
+multipop(BP);
+return;
+
+
+

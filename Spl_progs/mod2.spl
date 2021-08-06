@@ -1,0 +1,112 @@
+alias functionnum R1;
+alias pagenum R2;
+if(functionnum == 1)then
+  [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+    while([SYSTEM_STATUS_TABLE + 2] == 0)do
+       [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = WAIT_MEM;
+       multipush(R1,R2);
+       call MOD_5;
+       multipop(R1,R2);
+    endwhile;
+   [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+   [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+alias i R3;
+i = 0;
+ while(i<128)do
+    if([MEMORY_FREE_LIST + i] == 0)then
+      [MEMORY_FREE_LIST + i] = 1;
+      R0 = i;
+      break;
+     endif;
+  i = i + 1;
+ endwhile;
+//breakpoint;
+return;
+endif;
+
+if(functionnum == 2)then
+[MEMORY_FREE_LIST + pagenum] = [MEMORY_FREE_LIST + pagenum] - 1;
+
+  if([MEMORY_FREE_LIST + pagenum] == 0)then
+       [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+  endif;
+ R4 = 0;
+
+while(R4 < 16)do
+  if([PROCESS_TABLE + (R4)*16 + 4] == WAIT_MEM)then
+    [PROCESS_TABLE + (R4)*16 + 4] = READY;
+   endif;
+R4 = R4 +1;
+endwhile;
+//breakpoint;
+return;
+endif;
+
+
+if(functionnum == 4)then
+ alias blocknum R2;
+[DISK_FREE_LIST + blocknum] = [DISK_FREE_LIST + blocknum] -1;
+return;
+endif;
+
+
+
+
+if(functionnum == 5)then
+alias blocknum R2;
+alias i R3;
+alias j R4;
+alias p R5;
+alias q R6;
+alias pgno R7;
+alias flag R9;
+p = -1;
+q = -1;
+i = 0;
+flag = 0;
+while(i<16)do
+j = 4;
+   while(j<8)do
+    if([DISK_MAP_TABLE + i*10 + j] == blocknum)then
+       p = i;
+       q = j;
+        if([PAGE_TABLE_BASE + p*20 + q*2 + 1] == "0100")then
+           flag = 1;
+           break;
+        endif;
+     endif;
+   j = j+1;
+   endwhile;
+    if(flag == 1)then
+     break;
+    endif;
+i = i+1;
+endwhile;
+
+
+if(p != -1)then
+      if([PAGE_TABLE_BASE + p*20 + q*2 + 1] == "0100")then
+         pgno = [PAGE_TABLE_BASE + p*20 + q*2];
+         [MEMORY_FREE_LIST + pgno] = [MEMORY_FREE_LIST + pgno] + 1;
+         R0 = pgno;
+         return;
+      endif;
+endif;
+
+multipush(R0,R1,R2,R3,R4,R5,R6,R7);
+functionnum = 1;
+  call MOD_2;
+  R8 = R0;
+  multipop(R0,R1,R2,R3,R4,R5,R6,R7); 
+
+multipush(R0,R1,R2,R3,R4,R5,R6,R7,R8);
+R1 = 2;
+R4 = R2;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = R8;
+call MOD_4;
+multipop(R0,R1,R2,R3,R4,R5,R6,R7,R8);
+R0 = R8;
+breakpoint;
+return;
+endif;

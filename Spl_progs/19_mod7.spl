@@ -1,0 +1,113 @@
+loadi(4,17);
+loadi(5,18);      //timer
+loadi(65,7);
+loadi(66,8);      //init
+loadi(63,13);
+loadi(64,14);     //lib
+loadi(22,35);
+loadi(23,36);     //int10
+loadi(2,15);
+loadi(3,16);      //excep
+loadi(16,29);
+loadi(17,30);     //int7
+loadi(69,11);
+loadi(70,12);     //idle
+loadi(50,63); 
+loadi(51,64);    //mod5
+loadi(14,27);
+loadi(15,28);    //int6
+loadi(40,53);
+loadi(41,54);    //module0
+loadi(48,61);
+loadi(49,62);   //module4
+loadi(8,21);
+loadi(9,22);     //console
+loadi(20,33);
+loadi(21,34);    //int9
+loadi(42,55);
+loadi(43,56);    //mod1
+loadi(44,57);
+loadi(45,58);    //mod2
+loadi(59,3);
+loadi(60,4);     //inode
+loadi(6,19);
+loadi(7,20);     //disk
+loadi(61,2);     //disk map table
+
+alias i R0;
+i=0;
+while(i<83) do
+	[MEMORY_FREE_LIST+i]=1;
+	i=i+1;
+endwhile;
+
+while(i<128) do
+	[MEMORY_FREE_LIST+i]=0;
+	i=i+1;
+endwhile;
+
+i=0;
+while(i<10) do
+	[DISK_MAP_TABLE+(1*10)+i]=-1;
+	i=i+1;
+endwhile;
+
+[SYSTEM_STATUS_TABLE+2]=45;
+[SYSTEM_STATUS_TABLE+3]=0;
+[DISK_STATUS_TABLE+0]=0;
+[TERMINAL_STATUS_TABLE] = 0;
+
+alias x R1;
+x=2;
+while(x<16) do
+	[PROCESS_TABLE+x*16+4]=TERMINATED;
+	x=x+1;
+endwhile;
+
+PTBR=PAGE_TABLE_BASE+20;
+PTLR=10;
+//Library
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+//Heap
+[PTBR+4] = 78;
+[PTBR+5] = "0110";
+[PTBR+6] = 79;
+[PTBR+7] = "0110";
+
+//Code
+[PTBR+8] = 65;
+[PTBR+9] = "0100";
+[PTBR+10] = 66;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+//Stack
+[PTBR+16] = 76;
+[PTBR+17] = "0110";
+[PTBR+18] = 77;
+[PTBR+19] = "0110";
+
+[PROCESS_TABLE+17]=1;
+[PROCESS_TABLE+29]=8*512;
+[PROCESS_TABLE+28]=0;
+[PROCESS_TABLE+30]=PTBR;
+[PROCESS_TABLE+31]=PTLR;
+[PROCESS_TABLE+27]=80;
+[PROCESS_TABLE+20]=CREATED;
+[76*512]=[65*512+1];
+
+i=81*512-16;
+while(i<81*512) do
+[i]=-1;
+i=i+1;
+endwhile;
+
+breakpoint;
+return;

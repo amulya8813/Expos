@@ -1,0 +1,102 @@
+breakpoint;
+alias userSP R0;
+alias filename R1;
+alias i R2;
+alias user_page_no R5;
+alias inode_index R6;
+alias j R7;
+alias k R8;
+alias count R9;
+alias temp R10;
+breakpoint;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 9;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = SP;
+userSP = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 11]*512 - 1;
+PTBR = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 1]*16 + 14]; 
+filename = [[PTBR + ((userSP - 4)/512)*2] * 512 + ((userSP - 4) % 512)];  
+
+i = 0;
+while(i < 60) do
+	if([INODE_TABLE + 16*i] == 3 && [INODE_TABLE + 16*i + 1] == filename) then
+	inode_index = i;
+	break;
+	endif;
+	i = i + 1;
+endwhile;
+
+if(i == 60) then
+	SP = userSP;
+	[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+	[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)]= -1;
+	ireturn;
+endif;
+
+multipush(R0,R1,R2,R3,R4,R5,R6);
+	 R1=3;
+	 R2=[SYSTEM_STATUS_TABLE + 1];
+	 call MOD_1;
+multipop(R0,R1,R2,R3,R4,R5,R6);
+
+user_page_no = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 1]*16 + 11];
+
+[MEMORY_FREE_LIST + user_page_no] = [MEMORY_FREE_LIST + user_page_no] + 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+SP = user_page_no * 512 -1;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = RUNNING;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 7] = inode_index;
+PTBR = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 14];
+[PTBR + 0] = 63;
+[PTBR + 1] = "0100";
+[PTBR + 2] = 64;
+[PTBR + 3] = "0100";
+
+j = 8;
+while(j < 10) do
+multipush(R0,R1,R2,R3,R4,R5,R6,R7);
+	R1 = 1;                              //STACK
+	call MOD_2;
+	[PTBR + j*2] =R0;
+	[PTBR + j*2 + 1] = "0110";	
+multipop(R0,R1,R2,R3,R4,R5,R6,R7);
+endwhile;
+
+
+j=0;
+multipush(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+		 R1=5;
+		 R2=[INODE_TABLE+inode_index*16+8];
+		 call MOD_2;
+		[PTBR + 8 + (j*2)] =R0;
+		[PTBR + 9 + (j*2) ] = "0100";	
+multipop(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9,R10);
+	
+j=1;
+while(j < 4)  do
+	[PTBR + 8 + j*2] = -1;
+	[PTBR + 9 + j*2] = "0000";
+	j = j + 1;
+endwhile;
+
+j=0;
+while(j<4) do
+[DISK_MAP_TABLE+[SYSTEM_STATUS_TABLE + 1]*10+4+j]=[INODE_TABLE+inode_index*16+8+j];
+endwhile;
+
+j=0;
+while(j<10) do
+[DISK_MAP_TABLE+[SYSTEM_STATUS_TABLE + 1]*10+j]=-1;
+	if(j==3) then
+		j=j+5;
+	else
+		j=j+1;
+	endif;
+endwhile;
+
+
+breakpoint;
+[[PTBR + 16] * 512] = [[PTBR + 8] * 512 + 1];
+SP = 8 * 512;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
+ireturn;

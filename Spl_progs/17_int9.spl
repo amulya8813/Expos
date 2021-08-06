@@ -1,0 +1,131 @@
+alias userSP R0;
+alias physicalpagenum R1;
+alias offset R2;
+alias filenameadd R3;
+alias filename R4;
+alias i R5;
+alias count R6;
+alias inode_index R7;
+alias user_page_no R8;
+alias currPID R9;
+breakpoint;
+[PROCESS_TABLE+(currPID*16)+9]=9;
+userSP=SP;
+[PROCESS_TABLE+(currPID*16)+13]=SP;
+SP=[PROCESS_TABLE+(currPID*16)+11]*512-1;
+PTBR = [PROCESS_TABLE+[SYSTEM_STATUS_TABLE + 1]*16 + 14]; 
+physicalpagenum=[PTBR+2*((userSP-4)/512)];
+offset=(userSP-4)%512;
+filenameadd=(physicalpagenum*512)+offset;
+filename=[filenameadd];
+
+i=0;
+while(i<60) do
+	if([INODE_TABLE+i*16+1]==filename) then
+	inode_index=i;
+	break;
+	endif;
+	i=i+1;
+endwhile;
+if(i==60) then
+alias physicaladdretval R8;
+	 physicaladdretval=[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)];
+	 [physicaladdretval]=-1;
+	 [PROCESS_TABLE+currPID*16+9]=0;
+	 SP=userSP;
+ireturn;
+endif;
+
+if([INODE_TABLE+inode_index*16]!=3) then
+alias physicaladdretval R8;
+	 physicaladdretval=[[PTBR+2*((userSP-1)/512)]*512+((userSP-1)%512)];
+	 [physicaladdretval]=-1;
+	 [PROCESS_TABLE+currPID*16+9]=0;
+	 SP=userSP;
+ireturn;	 
+endif;
+
+multipush(R0, R1, R2, R3 , R4 , R5 , R6 , R7 , R8 , R9 );
+	 R1=3;
+	 R2=currPID;
+	 call MOD_1;
+multipop(R0, R1, R2, R3 , R4 , R5 , R6 , R7 , R8 , R9 );	 
+print 1;	 
+user_page_no=[PROCESS_TABLE+(currPID*16)+11];
+
+[MEMORY_FREE_LIST+user_page_no]=[MEMORY_FREE_LIST+user_page_no]+1;
+[SYSTEM_STATUS_TABLE+2]=[SYSTEM_STATUS_TABLE+2]-1;
+
+SP=user_page_no*512-1;
+[PROCESS_TABLE+(currPID*16)+4]=RUNNING;
+[PROCESS_TABLE+(currPID*16)+7]=inode_index;
+PTBR=[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 14];
+//Library
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+
+i = 2;
+while(i < 10) do
+multipush(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+R1 = 1;
+call MOD_2;
+[PTBR + i*2] =R0;
+[PTBR + i*2 + 1] = "0110";
+multipop(R0,R1,R2,R3,R4,R5,R6,R7,R8,R9);
+if(i == 3) then
+i = i + 5;
+else
+i = i + 1;
+endif;
+endwhile;
+
+
+i=0;
+alias j R11;
+alias k R12;
+count=0;
+while(i<4) do
+if([INODE_TABLE+inode_index*16+8+i]!=-1) then
+	count=count+1;
+endif;
+	i=i+1;
+endwhile;
+
+i=0;
+while(i<count) do
+multipush(R0, R1, R2, R3 , R4 , R5 , R6 , R7 , R8 , R9 , R10 );
+	 R1=1;
+	 call MOD_2;
+	 j=R0;
+	 [PTBR+8+i*2] = j;
+	 [PTBR+9+i*2] = "0110";
+multipop(R0, R1, R2, R3 , R4 , R5 , R6 , R7 , R8 , R9 , R10 );
+i=i+1;
+endwhile;
+
+while(i<4) do
+	[PTBR+8+i*2] = -1;
+	[PTBR+9+i*2] = "0000";
+	i=i+1;
+endwhile;
+
+i=0;
+while(i<count) do
+j=[INODE_TABLE+inode_index*16+8+i];
+k=[PTBR+8+i*2];
+loadi(k,j);
+i=i+1;
+endwhile;
+
+breakpoint;
+print 5;
+
+[[PTBR+16]*512]=[[PTBR+8]*512+1];
+SP=8*512;
+breakpoint;
+[PROCESS_TABLE+currPID*16+9]=0;
+ireturn;
+			

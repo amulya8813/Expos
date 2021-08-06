@@ -1,0 +1,50 @@
+alias currPID R0;
+alias pte R1;
+currPID=[SYSTEM_STATUS_TABLE+1];
+multipush (BP);
+pte=PROCESS_TABLE+currPID*16;
+[pte+12]=SP%512;
+[pte+14]=PTBR;
+[pte+15]=PTLR;
+if([pte+4]==RUNNING) then
+	[pte+4]=READY;
+endif;
+
+alias newPID R2;
+newPID=-1;
+alias newpt R3;
+alias i R4;
+alias j R5;
+R5=0;
+i=currPID;
+j=i+1;
+while(R5<15) do
+	newpt=PROCESS_TABLE+j*16;
+	R5=R5+1;
+	if(([newpt+4]==READY || [newpt+4]==CREATED)) then
+		newPID=i;
+		break;
+	endif;
+	j=(j+1)%16;	
+endwhile;
+	
+if(newPID==-1) then
+	newPID=0;
+endif;
+	
+newpt=PROCESS_TABLE+newPID*16;
+SP=[newpt+11]*512+[newpt+12];
+PTBR=[newpt+14];
+PTLR=[newpt+15];
+
+[SYSTEM_STATUS_TABLE+1]=newPID;
+
+if([newpt+4]==CREATED) then
+	[newpt+4]=RUNNING;
+	SP=[newpt+13];
+	[newpt+9]=0;
+	ireturn;
+endif;
+[newpt+4]=RUNNING;
+multipop (BP);
+return;
