@@ -1,0 +1,42 @@
+decl
+int fun(int a,int b);
+enddecl
+int fun(int a,int b)
+    {
+    begin
+    if(a==0) then
+    a=b;
+    endif;
+    if(b==0) then
+    b=a;
+    endif;
+    while (a!=b) do
+    if(a>b) then
+    a=a-b;
+    else
+    b=b-a;
+    endif;
+    endwhile;
+    return a;
+    end
+    }	
+    		
+int main()
+{
+decl
+    int a,b,temp0,temp1,temp2,temp3,temp4,temp5,i,g;
+enddecl
+begin
+    temp0 = exposcall ( "Write" , -2, "enter a" );
+    temp1= exposcall ( "Read" , -1, a );
+    temp2 = exposcall ( "Write" , -2, "enter b" );
+    temp3= exposcall ( "Read" , -1, b );
+    g=fun(a,b);
+    temp4= exposcall ( "Write" , -2, "gcd is" );
+    temp5 = exposcall ( "Write" , -2, g );
+    
+    
+return 0;
+end
+}
+

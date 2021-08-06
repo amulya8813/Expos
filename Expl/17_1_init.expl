@@ -1,0 +1,14 @@
+int main() {
+	decl
+		int temp1, temp2, temp3;
+		str str1,str2;
+	enddecl
+	
+	begin
+		str1 = "Enter name of program";
+		temp1 = exposcall("Write", -2, str1);
+		temp2 = exposcall("Read", -1, str2);
+               temp3=exposcall("Exec",str2);
+	return 0;
+end	
+}
